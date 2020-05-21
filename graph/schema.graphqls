@@ -1,0 +1,52 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+
+type Student {
+  id: ID!
+  name: String!
+  shifts: [Shift]
+  role: Role!
+  class: String!
+}
+
+scalar Time
+
+
+type Shift {
+  start: Time,
+  end: Time
+}
+
+enum Role {
+  GUIDE
+  INFRASTRUKTUR
+  EMPFANG
+  BUFFET
+  KURZPRAESENTATIONEN
+  PROJEKTVORSTELLUNGEN
+  SONSTIGES
+}
+
+type Query {
+  students: [Student!]!
+  allWithRole: [Student!]!
+  allInClass: [Student!]!
+}
+
+input NewStudent {
+  name: String!
+  role: Role!
+  class: String!
+}
+
+input InputShift {
+  start: Time,
+  end: Time
+}
+
+type Mutation {
+  addStudent(input: NewStudent!): Student!
+  addShift(newShift: InputShift!): Student!
+}
