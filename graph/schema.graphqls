@@ -15,7 +15,8 @@ scalar Time
 
 
 type Shift {
-  start: Time,
+  studentID: ID!
+  start: Time
   end: Time
 }
 
@@ -31,8 +32,9 @@ enum Role {
 
 type Query {
   students: [Student!]!
-  allWithRole: [Student!]!
-  allInClass: [Student!]!
+  allWithRole(role: Role!): [Student!]!
+  allInClass(class: String!): [Student!]!
+  getStudentById(studentID: ID!): Student! # nil wenn ID nichts zurückgibt oder error?
 }
 
 input NewStudent {
@@ -48,5 +50,8 @@ input InputShift {
 
 type Mutation {
   addStudent(input: NewStudent!): Student!
-  addShift(newShift: InputShift!): Student!
+  addShift(studentId: ID!, newShift: InputShift!): Student!
+  addShifts(studentId: ID!,newShifts: [InputShift!]!): Student!
+
+  updateShifts(studentId: ID!, newShifts: [InputShift!]!): Student!
 }

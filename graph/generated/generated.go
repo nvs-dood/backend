@@ -45,19 +45,23 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		AddShift   func(childComplexity int, newShift models.InputShift) int
-		AddStudent func(childComplexity int, input models.NewStudent) int
+		AddShift     func(childComplexity int, studentID string, newShift models.InputShift) int
+		AddShifts    func(childComplexity int, studentID string, newShifts []*models.InputShift) int
+		AddStudent   func(childComplexity int, input models.NewStudent) int
+		UpdateShifts func(childComplexity int, studentID string, newShifts []*models.InputShift) int
 	}
 
 	Query struct {
-		AllInClass  func(childComplexity int) int
-		AllWithRole func(childComplexity int) int
-		Students    func(childComplexity int) int
+		AllInClass     func(childComplexity int, class string) int
+		AllWithRole    func(childComplexity int, role models.Role) int
+		GetStudentByID func(childComplexity int, studentID string) int
+		Students       func(childComplexity int) int
 	}
 
 	Shift struct {
-		End   func(childComplexity int) int
-		Start func(childComplexity int) int
+		End       func(childComplexity int) int
+		Start     func(childComplexity int) int
+		StudentID func(childComplexity int) int
 	}
 
 	Student struct {
@@ -71,12 +75,15 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	AddStudent(ctx context.Context, input models.NewStudent) (*models.Student, error)
-	AddShift(ctx context.Context, newShift models.InputShift) (*models.Student, error)
+	AddShift(ctx context.Context, studentID string, newShift models.InputShift) (*models.Student, error)
+	AddShifts(ctx context.Context, studentID string, newShifts []*models.InputShift) (*models.Student, error)
+	UpdateShifts(ctx context.Context, studentID string, newShifts []*models.InputShift) (*models.Student, error)
 }
 type QueryResolver interface {
 	Students(ctx context.Context) ([]*models.Student, error)
-	AllWithRole(ctx context.Context) ([]*models.Student, error)
-	AllInClass(ctx context.Context) ([]*models.Student, error)
+	AllWithRole(ctx context.Context, role models.Role) ([]*models.Student, error)
+	AllInClass(ctx context.Context, class string) ([]*models.Student, error)
+	GetStudentByID(ctx context.Context, studentID string) (*models.Student, error)
 }
 
 type executableSchema struct {
@@ -104,7 +111,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddShift(childComplexity, args["newShift"].(models.InputShift)), true
+		return e.complexity.Mutation.AddShift(childComplexity, args["studentId"].(string), args["newShift"].(models.InputShift)), true
+
+	case "Mutation.addShifts":
+		if e.complexity.Mutation.AddShifts == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addShifts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddShifts(childComplexity, args["studentId"].(string), args["newShifts"].([]*models.InputShift)), true
 
 	case "Mutation.addStudent":
 		if e.complexity.Mutation.AddStudent == nil {
@@ -118,19 +137,53 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddStudent(childComplexity, args["input"].(models.NewStudent)), true
 
+	case "Mutation.updateShifts":
+		if e.complexity.Mutation.UpdateShifts == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateShifts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateShifts(childComplexity, args["studentId"].(string), args["newShifts"].([]*models.InputShift)), true
+
 	case "Query.allInClass":
 		if e.complexity.Query.AllInClass == nil {
 			break
 		}
 
-		return e.complexity.Query.AllInClass(childComplexity), true
+		args, err := ec.field_Query_allInClass_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AllInClass(childComplexity, args["class"].(string)), true
 
 	case "Query.allWithRole":
 		if e.complexity.Query.AllWithRole == nil {
 			break
 		}
 
-		return e.complexity.Query.AllWithRole(childComplexity), true
+		args, err := ec.field_Query_allWithRole_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AllWithRole(childComplexity, args["role"].(models.Role)), true
+
+	case "Query.getStudentById":
+		if e.complexity.Query.GetStudentByID == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getStudentById_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetStudentByID(childComplexity, args["studentID"].(string)), true
 
 	case "Query.students":
 		if e.complexity.Query.Students == nil {
@@ -152,6 +205,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Shift.Start(childComplexity), true
+
+	case "Shift.studentID":
+		if e.complexity.Shift.StudentID == nil {
+			break
+		}
+
+		return e.complexity.Shift.StudentID(childComplexity), true
 
 	case "Student.class":
 		if e.complexity.Student.Class == nil {
@@ -269,7 +329,8 @@ scalar Time
 
 
 type Shift {
-  start: Time,
+  studentID: ID!
+  start: Time
   end: Time
 }
 
@@ -285,8 +346,9 @@ enum Role {
 
 type Query {
   students: [Student!]!
-  allWithRole: [Student!]!
-  allInClass: [Student!]!
+  allWithRole(role: Role!): [Student!]!
+  allInClass(class: String!): [Student!]!
+  getStudentById(studentID: ID!): Student! # nil wenn ID nichts zurückgibt oder error?
 }
 
 input NewStudent {
@@ -302,7 +364,10 @@ input InputShift {
 
 type Mutation {
   addStudent(input: NewStudent!): Student!
-  addShift(newShift: InputShift!): Student!
+  addShift(studentId: ID!, newShift: InputShift!): Student!
+  addShifts(studentId: ID!,newShifts: [InputShift!]!): Student!
+
+  updateShifts(studentId: ID!, newShifts: [InputShift!]!): Student!
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -314,14 +379,44 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_addShift_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 models.InputShift
-	if tmp, ok := rawArgs["newShift"]; ok {
-		arg0, err = ec.unmarshalNInputShift2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐInputShift(ctx, tmp)
+	var arg0 string
+	if tmp, ok := rawArgs["studentId"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["newShift"] = arg0
+	args["studentId"] = arg0
+	var arg1 models.InputShift
+	if tmp, ok := rawArgs["newShift"]; ok {
+		arg1, err = ec.unmarshalNInputShift2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputShift(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["newShift"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addShifts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["studentId"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["studentId"] = arg0
+	var arg1 []*models.InputShift
+	if tmp, ok := rawArgs["newShifts"]; ok {
+		arg1, err = ec.unmarshalNInputShift2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputShiftᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["newShifts"] = arg1
 	return args, nil
 }
 
@@ -330,12 +425,34 @@ func (ec *executionContext) field_Mutation_addStudent_args(ctx context.Context, 
 	args := map[string]interface{}{}
 	var arg0 models.NewStudent
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNNewStudent2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐNewStudent(ctx, tmp)
+		arg0, err = ec.unmarshalNNewStudent2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐNewStudent(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateShifts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["studentId"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["studentId"] = arg0
+	var arg1 []*models.InputShift
+	if tmp, ok := rawArgs["newShifts"]; ok {
+		arg1, err = ec.unmarshalNInputShift2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputShiftᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["newShifts"] = arg1
 	return args, nil
 }
 
@@ -350,6 +467,48 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_allInClass_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["class"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["class"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_allWithRole_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 models.Role
+	if tmp, ok := rawArgs["role"]; ok {
+		arg0, err = ec.unmarshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐRole(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["role"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getStudentById_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["studentID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["studentID"] = arg0
 	return args, nil
 }
 
@@ -427,7 +586,7 @@ func (ec *executionContext) _Mutation_addStudent(ctx context.Context, field grap
 	}
 	res := resTmp.(*models.Student)
 	fc.Result = res
-	return ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐStudent(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudent(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_addShift(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -454,7 +613,7 @@ func (ec *executionContext) _Mutation_addShift(ctx context.Context, field graphq
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddShift(rctx, args["newShift"].(models.InputShift))
+		return ec.resolvers.Mutation().AddShift(rctx, args["studentId"].(string), args["newShift"].(models.InputShift))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -468,7 +627,89 @@ func (ec *executionContext) _Mutation_addShift(ctx context.Context, field graphq
 	}
 	res := resTmp.(*models.Student)
 	fc.Result = res
-	return ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐStudent(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addShifts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addShifts_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddShifts(rctx, args["studentId"].(string), args["newShifts"].([]*models.InputShift))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Student)
+	fc.Result = res
+	return ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateShifts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateShifts_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateShifts(rctx, args["studentId"].(string), args["newShifts"].([]*models.InputShift))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Student)
+	fc.Result = res
+	return ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudent(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_students(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -502,7 +743,7 @@ func (ec *executionContext) _Query_students(ctx context.Context, field graphql.C
 	}
 	res := resTmp.([]*models.Student)
 	fc.Result = res
-	return ec.marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐStudentᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudentᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_allWithRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -520,9 +761,16 @@ func (ec *executionContext) _Query_allWithRole(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_allWithRole_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AllWithRole(rctx)
+		return ec.resolvers.Query().AllWithRole(rctx, args["role"].(models.Role))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -536,7 +784,7 @@ func (ec *executionContext) _Query_allWithRole(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*models.Student)
 	fc.Result = res
-	return ec.marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐStudentᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudentᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_allInClass(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -554,9 +802,16 @@ func (ec *executionContext) _Query_allInClass(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_allInClass_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AllInClass(rctx)
+		return ec.resolvers.Query().AllInClass(rctx, args["class"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -570,7 +825,48 @@ func (ec *executionContext) _Query_allInClass(ctx context.Context, field graphql
 	}
 	res := resTmp.([]*models.Student)
 	fc.Result = res
-	return ec.marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐStudentᚄ(ctx, field.Selections, res)
+	return ec.marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudentᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getStudentById(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getStudentById_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetStudentByID(rctx, args["studentID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Student)
+	fc.Result = res
+	return ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudent(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -640,6 +936,40 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Shift_studentID(ctx context.Context, field graphql.CollectedField, obj *models.Shift) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Shift",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StudentID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Shift_start(ctx context.Context, field graphql.CollectedField, obj *models.Shift) (ret graphql.Marshaler) {
@@ -800,7 +1130,7 @@ func (ec *executionContext) _Student_shifts(ctx context.Context, field graphql.C
 	}
 	res := resTmp.([]*models.Shift)
 	fc.Result = res
-	return ec.marshalOShift2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐShift(ctx, field.Selections, res)
+	return ec.marshalOShift2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐShift(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Student_role(ctx context.Context, field graphql.CollectedField, obj *models.Student) (ret graphql.Marshaler) {
@@ -834,7 +1164,7 @@ func (ec *executionContext) _Student_role(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(models.Role)
 	fc.Result = res
-	return ec.marshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+	return ec.marshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐRole(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Student_class(ctx context.Context, field graphql.CollectedField, obj *models.Student) (ret graphql.Marshaler) {
@@ -1964,7 +2294,7 @@ func (ec *executionContext) unmarshalInputNewStudent(ctx context.Context, obj in
 			}
 		case "role":
 			var err error
-			it.Role, err = ec.unmarshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐRole(ctx, v)
+			it.Role, err = ec.unmarshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐRole(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2010,6 +2340,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addShift":
 			out.Values[i] = ec._Mutation_addShift(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addShifts":
+			out.Values[i] = ec._Mutation_addShifts(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateShifts":
+			out.Values[i] = ec._Mutation_updateShifts(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2081,6 +2421,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "getStudentById":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getStudentById(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -2107,6 +2461,11 @@ func (ec *executionContext) _Shift(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Shift")
+		case "studentID":
+			out.Values[i] = ec._Shift_studentID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "start":
 			out.Values[i] = ec._Shift_start(ctx, field, obj)
 		case "end":
@@ -2439,20 +2798,48 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNInputShift2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐInputShift(ctx context.Context, v interface{}) (models.InputShift, error) {
+func (ec *executionContext) unmarshalNInputShift2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputShift(ctx context.Context, v interface{}) (models.InputShift, error) {
 	return ec.unmarshalInputInputShift(ctx, v)
 }
 
-func (ec *executionContext) unmarshalNNewStudent2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐNewStudent(ctx context.Context, v interface{}) (models.NewStudent, error) {
+func (ec *executionContext) unmarshalNInputShift2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputShiftᚄ(ctx context.Context, v interface{}) ([]*models.InputShift, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*models.InputShift, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNInputShift2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputShift(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNInputShift2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputShift(ctx context.Context, v interface{}) (*models.InputShift, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNInputShift2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputShift(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) unmarshalNNewStudent2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐNewStudent(ctx context.Context, v interface{}) (models.NewStudent, error) {
 	return ec.unmarshalInputNewStudent(ctx, v)
 }
 
-func (ec *executionContext) unmarshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐRole(ctx context.Context, v interface{}) (models.Role, error) {
+func (ec *executionContext) unmarshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐRole(ctx context.Context, v interface{}) (models.Role, error) {
 	var res models.Role
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v models.Role) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐRole(ctx context.Context, sel ast.SelectionSet, v models.Role) graphql.Marshaler {
 	return v
 }
 
@@ -2470,11 +2857,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNStudent2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐStudent(ctx context.Context, sel ast.SelectionSet, v models.Student) graphql.Marshaler {
+func (ec *executionContext) marshalNStudent2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudent(ctx context.Context, sel ast.SelectionSet, v models.Student) graphql.Marshaler {
 	return ec._Student(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐStudentᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Student) graphql.Marshaler {
+func (ec *executionContext) marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudentᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Student) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -2498,7 +2885,7 @@ func (ec *executionContext) marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucas�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐStudent(ctx, sel, v[i])
+			ret[i] = ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudent(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -2511,7 +2898,7 @@ func (ec *executionContext) marshalNStudent2ᚕᚖgithubᚗcomᚋEnglederLucas�
 	return ret
 }
 
-func (ec *executionContext) marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐStudent(ctx context.Context, sel ast.SelectionSet, v *models.Student) graphql.Marshaler {
+func (ec *executionContext) marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudent(ctx context.Context, sel ast.SelectionSet, v *models.Student) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -2770,11 +3157,11 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOShift2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐShift(ctx context.Context, sel ast.SelectionSet, v models.Shift) graphql.Marshaler {
+func (ec *executionContext) marshalOShift2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐShift(ctx context.Context, sel ast.SelectionSet, v models.Shift) graphql.Marshaler {
 	return ec._Shift(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOShift2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐShift(ctx context.Context, sel ast.SelectionSet, v []*models.Shift) graphql.Marshaler {
+func (ec *executionContext) marshalOShift2ᚕᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐShift(ctx context.Context, sel ast.SelectionSet, v []*models.Shift) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -2801,7 +3188,7 @@ func (ec *executionContext) marshalOShift2ᚕᚖgithubᚗcomᚋEnglederLucasᚋn
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOShift2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐShift(ctx, sel, v[i])
+			ret[i] = ec.marshalOShift2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐShift(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -2814,7 +3201,7 @@ func (ec *executionContext) marshalOShift2ᚕᚖgithubᚗcomᚋEnglederLucasᚋn
 	return ret
 }
 
-func (ec *executionContext) marshalOShift2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelᚐShift(ctx context.Context, sel ast.SelectionSet, v *models.Shift) graphql.Marshaler {
+func (ec *executionContext) marshalOShift2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐShift(ctx context.Context, sel ast.SelectionSet, v *models.Shift) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

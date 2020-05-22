@@ -20,19 +20,6 @@ type NewStudent struct {
 	Class string `json:"class"`
 }
 
-type Shift struct {
-	Start *time.Time `json:"start"`
-	End   *time.Time `json:"end"`
-}
-
-type Student struct {
-	ID     string   `json:"id"`
-	Name   string   `json:"name"`
-	Shifts []*Shift `json:"shifts"`
-	Role   Role     `json:"role"`
-	Class  string   `json:"class"`
-}
-
 type Role string
 
 const (

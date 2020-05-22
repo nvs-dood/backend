@@ -1,6 +1,11 @@
 package graph
 
-import "github.com/EnglederLucas/nvs-dood/graph/models"
+import (
+	"context"
+
+	"github.com/jinzhu/gorm"
+	"github.com/EnglederLucas/nvs-dood/graph/models"
+)
 
 // This file will not be regenerated automatically.
 //
@@ -9,5 +14,5 @@ import "github.com/EnglederLucas/nvs-dood/graph/models"
 //go:generate go run github.com/99designs/gqlgen
 
 type Resolver struct{
-	students []*models.Student
+	DB *gorm.DB
 }
