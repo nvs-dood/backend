@@ -3,7 +3,7 @@ package models
 import "time"
 
 type Student struct {
-	ID 	   string   `json:"id" gorm:"primary_key"`
+	ID     int      `json:"id" gorm:"type:serial auto_increment;not null;primary_key"`
 	Name   string   `json:"name"`
 	Shifts []*Shift `json:"shifts" gorm:"foreignkey:StudentID"`
 	Role   Role     `json:"role"`
@@ -11,7 +11,7 @@ type Student struct {
 }
 
 type Shift struct {
-	StudentID string     `json:"-"`
+	StudentID int        `json:"-"` //Is student_id in database
 	Start     *time.Time `json:"start"`
 	End       *time.Time `json:"end"`
 }

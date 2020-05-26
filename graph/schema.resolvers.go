@@ -5,6 +5,8 @@ package graph
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/EnglederLucas/nvs-dood/graph/generated"
 	"github.com/EnglederLucas/nvs-dood/graph/models"
 	"github.com/EnglederLucas/nvs-dood/repository"
@@ -24,16 +26,18 @@ func (r *mutationResolver) AddStudent(ctx context.Context, input models.NewStude
 	return student, nil
 }
 
-func (r *mutationResolver) AddShift(ctx context.Context, studentID string, newShift models.InputShift) (*models.Student, error) {
+/*
+The time in the InputShift Model has to adhere to RFC3339
+*/
+
+func (r *mutationResolver) AddShift(ctx context.Context, studentID int, newShift models.InputShift) (*models.Student, error) {
 	var shifts []*models.InputShift
 
 	return r.AddShifts(ctx, studentID, append(shifts, &newShift))
 }
 
-func (r *mutationResolver) AddShifts(ctx context.Context, studentID string, newShifts []*models.InputShift) (*models.Student, error) {
-
-	var student models.Student
-	err := r.DB.Where("studentID = ?", studentID).Find(&student).Error //TODO: Use Repo function
+func (r *mutationResolver) AddShifts(ctx context.Context, studentID int, newShifts []*models.InputShift) (*models.Student, error) {
+	var student, err = repository.GetStudentByID(r.DB, studentID)
 
 	if err != nil {
 		return nil, err
@@ -55,36 +59,36 @@ func (r *mutationResolver) AddShifts(ctx context.Context, studentID string, newS
 		return nil, err
 	}
 
-	return &student, nil
+	return student, nil
 }
 
-func (r *mutationResolver) UpdateShifts(ctx context.Context, studentID string, newShifts []*models.InputShift) (*models.Student, error) {
-	var student models.Student
-	err := r.DB.Where("studentID = ?", studentID).Find(&student).Error //TODO: Use Repo function
+func (r *mutationResolver) UpdateShifts(ctx context.Context, studentID int, newShifts []*models.InputShift) (*models.Student, error) {
+	var student, err = repository.GetStudentByID(r.DB, studentID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	student.Shifts = nil
+	err = r.DB.Where("student_id = ?", studentID).Delete(models.Shift{}).Error
+
+	if err != nil {
+		return nil, err
+	}
 
 	for _, element := range newShifts {
-		shift := &models.Shift{
-			Start: element.Start,
-			End:   element.End,
+		curShift := &models.Shift{
+			StudentID: studentID,
+			Start:     element.Start,
+			End:       element.End,
 		}
 
-		student.Shifts = append(student.Shifts, shift)
+		err = r.DB.Create(curShift).Error
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	err = r.DB.Save(&student).Error
-
-	//err = r.DB.Create(&shift).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return &student, nil
+	return student, nil
 }
 
 func (r *queryResolver) Students(ctx context.Context) ([]*models.Student, error) {
@@ -117,8 +121,12 @@ func (r *queryResolver) AllInClass(ctx context.Context, class string) ([]*models
 	return students, nil
 }
 
-func (r *queryResolver) GetStudentByID(ctx context.Context, studentID string) (*models.Student, error) {
+func (r *queryResolver) GetStudentByID(ctx context.Context, studentID int) (*models.Student, error) {
 	return repository.GetStudentByID(r.DB, studentID)
+}
+
+func (r *shiftResolver) StudentID(ctx context.Context, obj *models.Shift) (int, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.
@@ -127,6 +135,11 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// Shift returns generated.ShiftResolver implementation.
+func (r *Resolver) Shift() generated.ShiftResolver {
+	return &shiftResolver{r}
+}
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
+type shiftResolver struct{ *Resolver }
