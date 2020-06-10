@@ -10,7 +10,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/99designs/gqlgen/example/scalars/model"
+	"github.com/EnglederLucas/nvs-dood/database"
+	"github.com/EnglederLucas/nvs-dood/graph/models"
+	"github.com/EnglederLucas/nvs-dood/repository"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
@@ -25,7 +27,7 @@ type contextKey struct {
 }
 
 // Middleware decodes the share session cookie and packs the session into context
-func Middleware( /*db *sql.DB*/ ) func(http.Handler) http.Handler {
+func Middleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			//Get token
@@ -44,29 +46,45 @@ func Middleware( /*db *sql.DB*/ ) func(http.Handler) http.Handler {
 			fmt.Printf("%s\n", buf)
 			print(key)
 
-			// TODO transfer into Usermodel
-			user := &model.User{
-				ID: 3,
-				Address: model.Address{ID: 3, Location: &model.Point{
-					X: 815, Y: 815,
-				}},
-				Name: bearer,
+			db := database.GetDB()
+			user, err := repository.GetUserByID(db, token.Subject())
+			if err != nil {
+				iuserEmail, _ := token.Get("email")
+				igivenName, _ := token.Get("given_name")
+				ifamilyName, _ := token.Get("family_name")
+				irole, _ := token.Get("doodrole")
+				userEmail := fmt.Sprintf("%v", iuserEmail)
+				userName := fmt.Sprintf("%v %v", igivenName, ifamilyName)
+				doodRole := fmt.Sprintf("%v", irole)
+				isAdmin := false
+				if doodRole == "supervisor" {
+					isAdmin = true
+				}
+
+				user := &models.User{
+					ID:    token.Subject(),
+					Email: userEmail,
+					Name:  &userName,
+					Admin: isAdmin,
+				}
+
+				user, err := repository.InsertUser(db, user)
+				if err != nil {
+					http.Error(w, "Could not create user", http.StatusInternalServerError)
+					return
+				}
 			}
 
-			//Get UID and then User
-
 			ctx := context.WithValue(r.Context(), userCtxKey, user)
-
 			r = r.WithContext(ctx)
-			//w.Write([]byte("aösdkfaposdj"))
 			next.ServeHTTP(w, r)
 		})
 	}
 }
 
 // ForContext finds the user from the context. REQUIRES Middleware to have run.
-func ForContext(ctx context.Context) *model.User {
-	raw, _ := ctx.Value(userCtxKey).(*model.User)
+func ForContext(ctx context.Context) *models.User {
+	raw, _ := ctx.Value(userCtxKey).(*models.User)
 	return raw
 }
 

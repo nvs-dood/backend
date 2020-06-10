@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/EnglederLucas/nvs-dood/auth"
 	"github.com/EnglederLucas/nvs-dood/graph/generated"
 	"github.com/EnglederLucas/nvs-dood/graph/models"
 	"github.com/EnglederLucas/nvs-dood/repository"
@@ -26,17 +27,13 @@ func (r *mutationResolver) AddStudent(ctx context.Context, input models.NewStude
 	return student, nil
 }
 
-/*
-The time in the InputShift Model has to adhere to RFC3339
-*/
-
-func (r *mutationResolver) AddShift(ctx context.Context, studentID int, newShift models.InputShift) (*models.Student, error) {
+func (r *mutationResolver) AddShift(ctx context.Context, studentID string, newShift models.InputShift) (*models.Student, error) {
 	var shifts []*models.InputShift
 
 	return r.AddShifts(ctx, studentID, append(shifts, &newShift))
 }
 
-func (r *mutationResolver) AddShifts(ctx context.Context, studentID int, newShifts []*models.InputShift) (*models.Student, error) {
+func (r *mutationResolver) AddShifts(ctx context.Context, studentID string, newShifts []*models.InputShift) (*models.Student, error) {
 	var student, err = repository.GetStudentByID(r.DB, studentID)
 
 	if err != nil {
@@ -62,7 +59,7 @@ func (r *mutationResolver) AddShifts(ctx context.Context, studentID int, newShif
 	return student, nil
 }
 
-func (r *mutationResolver) UpdateShifts(ctx context.Context, studentID int, newShifts []*models.InputShift) (*models.Student, error) {
+func (r *mutationResolver) UpdateShifts(ctx context.Context, studentID string, newShifts []*models.InputShift) (*models.Student, error) {
 	var student, err = repository.GetStudentByID(r.DB, studentID)
 
 	if err != nil {
@@ -92,6 +89,11 @@ func (r *mutationResolver) UpdateShifts(ctx context.Context, studentID int, newS
 }
 
 func (r *queryResolver) Students(ctx context.Context) ([]*models.Student, error) {
+
+	if user := auth.ForContext(ctx); user == nil || !user.Admin {
+		return nil, fmt.Errorf("Access denied")
+	}
+
 	var students []*models.Student
 
 	err := r.DB.Find(&students).Error
@@ -121,12 +123,8 @@ func (r *queryResolver) AllInClass(ctx context.Context, class string) ([]*models
 	return students, nil
 }
 
-func (r *queryResolver) GetStudentByID(ctx context.Context, studentID int) (*models.Student, error) {
+func (r *queryResolver) GetStudentByID(ctx context.Context, studentID string) (*models.Student, error) {
 	return repository.GetStudentByID(r.DB, studentID)
-}
-
-func (r *shiftResolver) StudentID(ctx context.Context, obj *models.Shift) (int, error) {
-	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.
@@ -135,11 +133,5 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-// Shift returns generated.ShiftResolver implementation.
-func (r *Resolver) Shift() generated.ShiftResolver {
-	return &shiftResolver{r}
-}
-
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-type shiftResolver struct{ *Resolver }

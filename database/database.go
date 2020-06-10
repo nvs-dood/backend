@@ -32,9 +32,10 @@ func InitDB() {
 
 	// Create the database. This is a one-time step.
 	// Comment out if running multiple times - You may see an error otherwise
+	db.Exec("DROP DATABASE test_db;")
 	db.Exec("CREATE DATABASE test_db;")
 	db.Exec("USE test_db;")
 
 	// Migration to create tables for Order and Item schema
-	db.AutoMigrate(&models.Student{}, &models.Shift{})
+	db.AutoMigrate(&models.Student{}, &models.Shift{}, &models.User{})
 }
