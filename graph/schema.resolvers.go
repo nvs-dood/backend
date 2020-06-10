@@ -89,7 +89,6 @@ func (r *mutationResolver) UpdateShifts(ctx context.Context, studentID string, n
 }
 
 func (r *queryResolver) Students(ctx context.Context) ([]*models.Student, error) {
-
 	if user := auth.ForContext(ctx); user == nil || !user.Admin {
 		return nil, fmt.Errorf("Access denied")
 	}

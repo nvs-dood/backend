@@ -11,13 +11,7 @@ type Student {
   class: String!
 }
 
-type User{
-  id: ID!
-  email: String!
-  name: String
-  studentID: ID
-  admin: Boolean!
-}
+
 
 scalar Time
 

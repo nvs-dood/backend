@@ -10,9 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/EnglederLucas/nvs-dood/database"
-	"github.com/EnglederLucas/nvs-dood/graph/models"
-	"github.com/EnglederLucas/nvs-dood/repository"
+	"github.com/EnglederLucas/nvs-dood/authmodels"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
@@ -46,33 +44,23 @@ func Middleware() func(http.Handler) http.Handler {
 			fmt.Printf("%s\n", buf)
 			print(key)
 
-			db := database.GetDB()
-			user, err := repository.GetUserByID(db, token.Subject())
-			if err != nil {
-				iuserEmail, _ := token.Get("email")
-				igivenName, _ := token.Get("given_name")
-				ifamilyName, _ := token.Get("family_name")
-				irole, _ := token.Get("doodrole")
-				userEmail := fmt.Sprintf("%v", iuserEmail)
-				userName := fmt.Sprintf("%v %v", igivenName, ifamilyName)
-				doodRole := fmt.Sprintf("%v", irole)
-				isAdmin := false
-				if doodRole == "supervisor" {
-					isAdmin = true
-				}
+			iuserEmail, _ := token.Get("email")
+			igivenName, _ := token.Get("given_name")
+			ifamilyName, _ := token.Get("family_name")
+			irole, _ := token.Get("doodrole")
+			userEmail := fmt.Sprintf("%v", iuserEmail)
+			userName := fmt.Sprintf("%v %v", igivenName, ifamilyName)
+			doodRole := fmt.Sprintf("%v", irole)
+			isAdmin := false
+			if doodRole == "supervisor" {
+				isAdmin = true
+			}
 
-				user := &models.User{
-					ID:    token.Subject(),
-					Email: userEmail,
-					Name:  &userName,
-					Admin: isAdmin,
-				}
-
-				user, err := repository.InsertUser(db, user)
-				if err != nil {
-					http.Error(w, "Could not create user", http.StatusInternalServerError)
-					return
-				}
+			user := &authmodels.User{
+				ID:    token.Subject(),
+				Email: userEmail,
+				Name:  &userName,
+				Admin: isAdmin,
 			}
 
 			ctx := context.WithValue(r.Context(), userCtxKey, user)
@@ -83,32 +71,14 @@ func Middleware() func(http.Handler) http.Handler {
 }
 
 // ForContext finds the user from the context. REQUIRES Middleware to have run.
-func ForContext(ctx context.Context) *models.User {
-	raw, _ := ctx.Value(userCtxKey).(*models.User)
+func ForContext(ctx context.Context) *authmodels.User {
+	raw, _ := ctx.Value(userCtxKey).(*authmodels.User)
 	return raw
 }
 
-// import (
-// 	"bytes"
-// 	"encoding/json"
-// 	"errors"
-// 	"fmt"
-// 	"log"
+var jwksURL string = `https://localhost:5000/.well-known/openid-configuration/jwks`
 
-// 	"github.com/lestrrat-go/jwx/jwa"
-// 	"github.com/lestrrat-go/jwx/jwk"
-// 	"github.com/lestrrat-go/jwx/jwt"
-// )
-
-//const bearer = `eyJhbGciOiJSUzI1NiIsImtpZCI6IjctZElZWHZUTUJzZmdENVlNcGQ1VEEiLCJ0eXAiOiJhdCtqd3QifQ.eyJuYmYiOjE1OTE3MjI3MTEsImV4cCI6MTU5MTcyNjMxMSwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NTAwMCIsImNsaWVudF9pZCI6InBvc3RtYW4tY2xpZW50Iiwic3ViIjoiMGZiZGIzOGUtNTkzNC00M2M2LWI5MGUtNWJjZWRmNzQyNTJlIiwiYXV0aF90aW1lIjoxNTkxNjgzMjYzLCJpZHAiOiJsb2NhbCIsIndlYnNpdGUiOiJodHRwOi8vYm9iLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjoidHJ1ZSIsImVtYWlsIjoiQm9iU21pdGhAZW1haWwuY29tIiwiZmFtaWx5X25hbWUiOiJTbWl0aCIsImdpdmVuX25hbWUiOiJCb2IiLCJuYW1lIjoiQm9iIFNtaXRoIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYm9iIiwiZG9vZHJvbGUiOiJzdXBlcnZpc29yIiwic2NvcGUiOlsib3BlbmlkIiwicHJvZmlsZSIsImVtYWlsIiwiZG9vZCJdLCJhbXIiOlsicHdkIl19.O2yhapqoC6_UjxwOEBW7lVU2Hj2AVCix8t27gBZ7DVJ4Xr5-P1JgYW-pz-Shb9Tc1vHcPsx-3xXp3f3XUplqacvyu2dx9bTmET4XMdP98u27veor1VZmiCyjf7Fyvphh1jtHZ9cJSivFatFtnkyFOpk-UU402-EfkLk4gzc11W4lAOnfgP_hWjHvVJhlf9yEH4Pb7LREwGib_ms2wXqDDz71FAnbyO26MaYwrqNxOaseCMgom5wVnvr2_6wHskwtjaV1JlEUOr5WjwpICL9pE9TRG3eMgrc1lcrH5jrIRBFCaG9wezMqZ_FQ_wctAuHCUW09yxq2cBsG7SLPJGoZug`
-
-const jwksURL = `https://localhost:5000/.well-known/openid-configuration/jwks`
-
-func main() {
-
-}
-
-func getKey( /*bearer *jwt.Token*/ ) (interface{}, error) {
+func getKey() (interface{}, error) {
 	set, err := jwk.Fetch(jwksURL)
 	if err != nil {
 		log.Printf("failed to parse JWK: ${}%s", err)

@@ -7,6 +7,8 @@ services:
             - mariadb-data:/var/lib/mysql
         environment:
             - MYSQL_ROOT_PASSWORD=Pass
+        ports:
+            - 3306:3306
         networks:
             - doodnet
     phpmyadmin:

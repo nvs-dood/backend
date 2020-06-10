@@ -37,5 +37,5 @@ func InitDB() {
 	db.Exec("USE test_db;")
 
 	// Migration to create tables for Order and Item schema
-	db.AutoMigrate(&models.Student{}, &models.Shift{}, &models.User{})
+	db.AutoMigrate(&models.Student{}, &models.Shift{})
 }

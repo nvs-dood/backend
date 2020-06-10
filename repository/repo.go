@@ -30,30 +30,3 @@ func InsertStudent(db *gorm.DB, student *models.Student) (*models.Student, error
 
 	return dbStudent, nil
 }
-
-func GetUserByID(db *gorm.DB, userId string) (*models.User, error) {
-	var user models.User
-	err := db.Where("id = ?", userId).Find(&user).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func InsertUser(db *gorm.DB, user *models.User) (*models.User, error) {
-	err := (*db).Create(&user).Error
-	if err != nil {
-		return nil, err
-	}
-
-	db.Commit()
-
-	dbUser, err := GetUserByID(db, user.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return dbUser, nil
-}

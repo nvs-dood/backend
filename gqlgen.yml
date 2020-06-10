@@ -49,9 +49,6 @@ models:
   Shift:
     model:
       - github.com/EnglederLucas/nvs-dood/graph/models.Shift
-  User:
-    model:
-      - github.com/EnglederLucas/nvs-dood/graph/models.User
   ID:
     model:
       - github.com/99designs/gqlgen/graphql.ID 
