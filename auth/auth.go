@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/EnglederLucas/nvs-dood/authmodels"
@@ -76,9 +77,10 @@ func ForContext(ctx context.Context) *authmodels.User {
 	return raw
 }
 
-var jwksURL string = `https://localhost:5000/.well-known/openid-configuration/jwks`
-
 func getKey() (interface{}, error) {
+
+	var jwksURL string = os.Getenv("JWKS_URL")
+	jwksURL = `https://localhost:5000/.well-known/openid-configuration/jwks`
 	set, err := jwk.Fetch(jwksURL)
 	if err != nil {
 		log.Printf("failed to parse JWK: ${}%s", err)
