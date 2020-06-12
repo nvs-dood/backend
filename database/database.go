@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/EnglederLucas/nvs-dood/graph/models"
 
@@ -18,8 +19,10 @@ func GetDB() *gorm.DB {
 
 func InitDB() {
 	var err error
-	//dataSourceName := "root:@tcp(172.17.0.2:3306)/?parseTime=True"
-	connectionString := "root:Pass@(localhost:3306)/" //test_db?charset=utf8&parseTime=True"
+	connectionString := os.Getenv("DB_CONN_STRING")
+	if connectionString == "" {
+		connectionString = "root:Pass@(localhost:3306)/" //test_db?charset=utf8&parseTime=True"
+	}
 
 	db, err = gorm.Open("mysql", connectionString)
 
