@@ -2,13 +2,13 @@ version: "3.7"
 services:
     mariadb:
         image: mariadb:latest
-        restart: always
         volumes:
             - mariadb-data:/var/lib/mysql
         environment:
             - MYSQL_ROOT_PASSWORD=Pass
         ports:
             - 3306:3306
+        restart: always
         networks:
             - doodnet
  
@@ -22,13 +22,23 @@ services:
             - MYSQL_ROOT_PASSWORD=Pass
         depends_on:
             - mariadb
+        restart: always
         networks:
             - doodnet
     dood-backend:
-        image: 
+        image: matthofmarch/dood-backend:latest
+        ports: 
+            - 3000:80
         environment:
             - PORT=80
             - DB_CONN_STRING=root:Pass@(mariadb:3306)/
+        depends_on: 
+            - mariadb
+        restart: always
+        networks:
+            - doodnet
+    
+    
 volumes:
   mariadb-data:
 
