@@ -1,7 +1,7 @@
 # Multi-stage build setup (https://docs.docker.com/develop/develop-images/multistage-build/)
 
 # Stage 1 (to create a "build" image, ~850MB)
-FROM golang:1.10.1 AS builder
+FROM golang:1.14.4 AS builder
 RUN go version
 
 COPY . /go/src/https://github.com/nvs-dood/backend
