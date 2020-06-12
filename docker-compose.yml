@@ -24,6 +24,11 @@ services:
             - mariadb
         networks:
             - doodnet
+    dood-backend:
+        image: 
+        environment:
+            - PORT=80
+            - DB_CONN_STRING=root:Pass@(mariadb:3306)/
 volumes:
   mariadb-data:
 
