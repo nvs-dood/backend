@@ -4,9 +4,10 @@ RUN go version
 
 COPY . /go/src/https://github.com/nvs-dood/backend
 WORKDIR /go/src/https://github.com/nvs-dood/backend
-RUN set -x && \
-    go get github.com/golang/dep/cmd/dep && \
-    dep ensure -v
+RUN set -x 
+#&& \
+ #   go get github.com/golang/dep/cmd/dep && \
+  #  dep ensure -v
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o app .
 
