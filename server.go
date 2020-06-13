@@ -3,9 +3,11 @@ package main
 //go run github.com/99designs/gqlgen generate
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/EnglederLucas/nvs-dood/auth"
 	"github.com/EnglederLucas/nvs-dood/database"
@@ -20,6 +22,10 @@ import (
 const defaultPort = "3000"
 
 func main() {
+
+	ch := time.After(10 * time.Second)
+	defer (func() { fmt.Println("waiting"); <-ch; fmt.Println("waited") })()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
