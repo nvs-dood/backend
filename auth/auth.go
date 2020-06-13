@@ -80,10 +80,12 @@ func ForContext(ctx context.Context) *authmodels.User {
 func getKey() (interface{}, error) {
 
 	var jwksURL string = os.Getenv("JWKS_URL")
-	jwksURL = `https://localhost:5000/.well-known/openid-configuration/jwks`
+	if jwksURL == "" {
+		jwksURL = `https://localhost:5000/.well-known/openid-configuration/jwks`
+	}
 	set, err := jwk.Fetch(jwksURL)
 	if err != nil {
-		log.Printf("failed to parse JWK: ${}%s", err)
+		log.Printf("failed to parse JWK: %s", err)
 		return nil, errors.New("failed to parse JWKs")
 	}
 
