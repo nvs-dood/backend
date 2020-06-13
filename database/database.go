@@ -12,12 +12,15 @@ import (
 
 var db *gorm.DB
 
-func GetDB() *gorm.DB {
-	InitDB()
-	return db
+func GetDB() (*gorm.DB, error) {
+	err := InitDB()
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
-func InitDB() {
+func InitDB() error {
 	var err error
 	connectionString := os.Getenv("DB_CONN_STRING")
 	if connectionString == "" {
@@ -28,7 +31,7 @@ func InitDB() {
 
 	if err != nil {
 		fmt.Println(err)
-		panic("failed to connect database")
+		return err
 	}
 
 	db.LogMode(true)
@@ -41,4 +44,5 @@ func InitDB() {
 
 	// Migration to create tables for Order and Item schema
 	db.AutoMigrate(&models.Student{}, &models.Shift{})
+	return nil
 }
