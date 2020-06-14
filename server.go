@@ -17,6 +17,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/rs/cors"
 )
 
 const defaultPort = "3000"
@@ -33,6 +34,11 @@ func main() {
 
 	router := chi.NewRouter()
 
+	router.Use(cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:8100"},
+		AllowCredentials: true,
+		Debug:            true,
+	}).Handler)
 	router.Use(auth.Middleware())
 
 	db, err := database.GetDB()
