@@ -49,6 +49,9 @@ models:
   Shift:
     model:
       - github.com/EnglederLucas/nvs-dood/graph/models.Shift
+  RoomStay:
+    model:
+      - github.com/EnglederLucas/nvs-dood/graph/models.RoomStay
   ID:
     model:
       - github.com/99designs/gqlgen/graphql.ID 

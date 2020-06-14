@@ -6,9 +6,9 @@ package graph
 import (
 	"context"
 	"fmt"
+	"github.com/99designs/gqlgen/example/starwars/generated"
 
 	"github.com/EnglederLucas/nvs-dood/auth"
-	"github.com/EnglederLucas/nvs-dood/graph/generated"
 	"github.com/EnglederLucas/nvs-dood/graph/models"
 	"github.com/EnglederLucas/nvs-dood/repository"
 )

@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+type EnterRoomInput struct {
+	Room      string    `json:"room"`
+	StudentID string    `json:"studentID"`
+	GroupSize *int      `json:"groupSize"`
+	Start     time.Time `json:"start"`
+}
+
 type InputShift struct {
 	Start *time.Time `json:"start"`
 	End   *time.Time `json:"end"`
@@ -19,10 +26,23 @@ type InputStudent struct {
 	Class string `json:"class"`
 }
 
+type LeaveRoomInput struct {
+	RoomStayID string    `json:"roomStayID"`
+	End        time.Time `json:"end"`
+}
+
 type NewStudent struct {
 	Name  string `json:"name"`
 	Role  Role   `json:"role"`
 	Class string `json:"class"`
+}
+
+type RoomStayInput struct {
+	Room      string    `json:"room"`
+	StudentID string    `json:"studentID"`
+	GroupSize *int      `json:"groupSize"`
+	Start     time.Time `json:"start"`
+	End       time.Time `json:"end"`
 }
 
 type Role string

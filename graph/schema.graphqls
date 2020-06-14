@@ -11,13 +11,19 @@ type Student {
   class: String!
 }
 
-
-
 scalar Time
-
 
 type Shift {
   studentID: ID!
+  start: Time
+  end: Time
+}
+
+type RoomStay {
+  stayID: ID!
+  room: String!
+  studentID: ID!
+  groupSize: Int
   start: Time
   end: Time
 }
@@ -37,6 +43,10 @@ type Query {
   allWithRole(role: Role!): [Student!]!
   allInClass(class: String!): [Student!]!
   getStudentById(studentID: ID!): Student! # nil wenn ID nichts zurückgibt oder error?
+
+  allVisitsInRoom(room: String!): [RoomStay]!
+  allRoomActivities: [RoomStay]!
+  currentNumberOfPeople(room: String!): Int!
 }
 
 input NewStudent {
@@ -55,12 +65,36 @@ input InputStudent {
   class: String!
 }
 
+input EnterRoomInput{
+  room: String!
+  studentID: ID!
+  groupSize: Int
+  start: Time!
+}
+
+input LeaveRoomInput{
+  roomStayID: ID!
+  end: Time!
+}
+
+input RoomStayInput{
+  room: String!
+  studentID: ID!
+  groupSize: Int
+  start: Time!
+  end: Time!
+}
+
 type Mutation {
   addStudent(input: NewStudent!): Student!
   addMeAsStudent(input: InputStudent!): Student!
   addShift(studentId: ID!, newShift: InputShift!): Student!
   addShifts(studentId: ID!,newShifts: [InputShift!]!): Student!
 
-
   updateShifts(studentId: ID!, newShifts: [InputShift!]!): Student!
+
+  groupEntersRoom(enterRoom: EnterRoomInput!): RoomStay! #Returns room stay id, for later adding the leaving
+  groupLeavesRoom(enterRoom: LeaveRoomInput!): RoomStay!
+
+  addRoomStay(input: RoomStayInput!): RoomStay!
 }

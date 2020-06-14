@@ -12,7 +12,6 @@ import (
 	"github.com/EnglederLucas/nvs-dood/auth"
 	"github.com/EnglederLucas/nvs-dood/database"
 	"github.com/EnglederLucas/nvs-dood/graph"
-	"github.com/EnglederLucas/nvs-dood/graph/generated"
 	"github.com/go-chi/chi"
 
 	"github.com/99designs/gqlgen/graphql/handler"

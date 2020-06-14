@@ -44,7 +44,7 @@ func InitDB() error {
 	db.Exec("USE test_db;")
 
 	// Migration to create tables for Order and Item schema
-	db.AutoMigrate(&models.Student{}, &models.Shift{})
+	db.AutoMigrate(&models.Student{}, &models.Shift{}, &models.RoomStay{})
 	SeedDatabase()
 
 	return nil
