@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/EnglederLucas/nvs-dood/auth"
 	"github.com/EnglederLucas/nvs-dood/graph/generated"
@@ -43,7 +42,7 @@ func (r *mutationResolver) AddMeAsStudent(ctx context.Context, input models.Inpu
 
 	err := r.DB.Create(student).Error
 	if err != nil {
-		log.Fatalf("Could not create student from user %s", user.ID)
+		fmt.Printf("Could not create student from user %s", user.ID)
 		return nil, fmt.Errorf("Could not create user")
 	}
 
