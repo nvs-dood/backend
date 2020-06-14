@@ -8,5 +8,6 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/jinzhu/gorm v1.9.12
 	github.com/lestrrat-go/jwx v1.0.2
+	github.com/rs/cors v1.6.0
 	github.com/vektah/gqlparser/v2 v2.0.1
 )

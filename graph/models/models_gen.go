@@ -14,6 +14,11 @@ type InputShift struct {
 	End   *time.Time `json:"end"`
 }
 
+type InputStudent struct {
+	Role  Role   `json:"role"`
+	Class string `json:"class"`
+}
+
 type NewStudent struct {
 	Name  string `json:"name"`
 	Role  Role   `json:"role"`

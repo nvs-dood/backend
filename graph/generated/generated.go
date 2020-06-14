@@ -45,10 +45,11 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		AddShift     func(childComplexity int, studentID string, newShift models.InputShift) int
-		AddShifts    func(childComplexity int, studentID string, newShifts []*models.InputShift) int
-		AddStudent   func(childComplexity int, input models.NewStudent) int
-		UpdateShifts func(childComplexity int, studentID string, newShifts []*models.InputShift) int
+		AddMeAsStudent func(childComplexity int, input models.InputStudent) int
+		AddShift       func(childComplexity int, studentID string, newShift models.InputShift) int
+		AddShifts      func(childComplexity int, studentID string, newShifts []*models.InputShift) int
+		AddStudent     func(childComplexity int, input models.NewStudent) int
+		UpdateShifts   func(childComplexity int, studentID string, newShifts []*models.InputShift) int
 	}
 
 	Query struct {
@@ -75,6 +76,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	AddStudent(ctx context.Context, input models.NewStudent) (*models.Student, error)
+	AddMeAsStudent(ctx context.Context, input models.InputStudent) (*models.Student, error)
 	AddShift(ctx context.Context, studentID string, newShift models.InputShift) (*models.Student, error)
 	AddShifts(ctx context.Context, studentID string, newShifts []*models.InputShift) (*models.Student, error)
 	UpdateShifts(ctx context.Context, studentID string, newShifts []*models.InputShift) (*models.Student, error)
@@ -100,6 +102,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Mutation.addMeAsStudent":
+		if e.complexity.Mutation.AddMeAsStudent == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addMeAsStudent_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddMeAsStudent(childComplexity, args["input"].(models.InputStudent)), true
 
 	case "Mutation.addShift":
 		if e.complexity.Mutation.AddShift == nil {
@@ -364,10 +378,17 @@ input InputShift {
   end: Time
 }
 
+input InputStudent {
+  role: Role!
+  class: String!
+}
+
 type Mutation {
   addStudent(input: NewStudent!): Student!
+  addMeAsStudent(input: InputStudent!): Student!
   addShift(studentId: ID!, newShift: InputShift!): Student!
   addShifts(studentId: ID!,newShifts: [InputShift!]!): Student!
+
 
   updateShifts(studentId: ID!, newShifts: [InputShift!]!): Student!
 }`, BuiltIn: false},
@@ -377,6 +398,20 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_addMeAsStudent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 models.InputStudent
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNInputStudent2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputStudent(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_addShift_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -575,6 +610,47 @@ func (ec *executionContext) _Mutation_addStudent(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().AddStudent(rctx, args["input"].(models.NewStudent))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Student)
+	fc.Result = res
+	return ec.marshalNStudent2ᚖgithubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐStudent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addMeAsStudent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addMeAsStudent_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddMeAsStudent(rctx, args["input"].(models.InputStudent))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2282,6 +2358,30 @@ func (ec *executionContext) unmarshalInputInputShift(ctx context.Context, obj in
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputInputStudent(ctx context.Context, obj interface{}) (models.InputStudent, error) {
+	var it models.InputStudent
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "role":
+			var err error
+			it.Role, err = ec.unmarshalNRole2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐRole(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "class":
+			var err error
+			it.Class, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewStudent(ctx context.Context, obj interface{}) (models.NewStudent, error) {
 	var it models.NewStudent
 	var asMap = obj.(map[string]interface{})
@@ -2337,6 +2437,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "addStudent":
 			out.Values[i] = ec._Mutation_addStudent(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addMeAsStudent":
+			out.Values[i] = ec._Mutation_addMeAsStudent(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2830,6 +2935,10 @@ func (ec *executionContext) unmarshalNInputShift2ᚖgithubᚗcomᚋEnglederLucas
 	}
 	res, err := ec.unmarshalNInputShift2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputShift(ctx, v)
 	return &res, err
+}
+
+func (ec *executionContext) unmarshalNInputStudent2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐInputStudent(ctx context.Context, v interface{}) (models.InputStudent, error) {
+	return ec.unmarshalInputInputStudent(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNNewStudent2githubᚗcomᚋEnglederLucasᚋnvsᚑdoodᚋgraphᚋmodelsᚐNewStudent(ctx context.Context, v interface{}) (models.NewStudent, error) {

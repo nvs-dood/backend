@@ -35,15 +35,25 @@ func Middleware() func(http.Handler) http.Handler {
 
 			//TODO add error handling
 
-			key, _ := getKey()
+			key, err := getKey()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
 
-			token, _ := jwt.Parse(bytes.NewReader([]byte(bearer)), jwt.WithVerify(jwa.RS256, key))
+			token, err := jwt.Parse(bytes.NewReader([]byte(bearer)), jwt.WithVerify(jwa.RS256, key))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
 
-			buf, _ := json.MarshalIndent(token, "", "")
-			//TODO convert buffer to string and read data
+			buf, err := json.MarshalIndent(token, "", "")
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
 
-			fmt.Printf("%s\n", buf)
-			print(key)
+			log.Printf("%s\n", buf)
 
 			iuserEmail, _ := token.Get("email")
 			igivenName, _ := token.Get("given_name")

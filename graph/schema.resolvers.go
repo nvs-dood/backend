@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/EnglederLucas/nvs-dood/auth"
 	"github.com/EnglederLucas/nvs-dood/graph/generated"
@@ -24,6 +25,28 @@ func (r *mutationResolver) AddStudent(ctx context.Context, input models.NewStude
 	if err != nil {
 		return nil, err
 	}
+	return student, nil
+}
+
+func (r *mutationResolver) AddMeAsStudent(ctx context.Context, input models.InputStudent) (*models.Student, error) {
+	user := auth.ForContext(ctx)
+	if user == nil || !user.Admin {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	student := &models.Student{
+		Class: input.Class,
+		Role:  input.Role,
+		ID:    user.ID,
+		Name:  *user.Name,
+	}
+
+	err := r.DB.Create(student).Error
+	if err != nil {
+		log.Fatalf("Could not create student from user %s", user.ID)
+		return nil, fmt.Errorf("Could not create user")
+	}
+
 	return student, nil
 }
 

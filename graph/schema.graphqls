@@ -50,10 +50,17 @@ input InputShift {
   end: Time
 }
 
+input InputStudent {
+  role: Role!
+  class: String!
+}
+
 type Mutation {
   addStudent(input: NewStudent!): Student!
+  addMeAsStudent(input: InputStudent!): Student!
   addShift(studentId: ID!, newShift: InputShift!): Student!
   addShifts(studentId: ID!,newShifts: [InputShift!]!): Student!
+
 
   updateShifts(studentId: ID!, newShifts: [InputShift!]!): Student!
 }
