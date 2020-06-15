@@ -4,12 +4,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/EnglederLucas/nvs-dood/auth"
+	"github.com/EnglederLucas/nvs-dood/graph/generated"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/EnglederLucas/nvs-dood/auth"
 	"github.com/EnglederLucas/nvs-dood/database"
 	"github.com/EnglederLucas/nvs-dood/graph"
 	"github.com/go-chi/chi"

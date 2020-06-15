@@ -25,7 +25,7 @@ func InitDB() error {
 	var err error
 	connectionString := os.Getenv("DB_CONN_STRING")
 	if connectionString == "" {
-		connectionString = "root:Pass@(localhost:3306)/" //test_db?charset=utf8&parseTime=True"
+		connectionString = "root:Pass@(localhost:3306)/test_db?charset=utf8&parseTime=True" //test_db?charset=utf8&parseTime=True" //Man Braucht parseTime damit die Datenbank die Zeiten parsen und vergleichen kann
 	}
 
 	db, err = gorm.Open("mysql", connectionString)
@@ -86,8 +86,8 @@ func SeedDatabase() {
 		{Class: "2CHIF", Name: "Spasenovic Bozidar", Role: models.RoleGUIDE, ID: "seed-bozidar"},
 		{Class: "2CHIF", Name: "Supper Marco", Role: models.RoleGUIDE, ID: "seed-supper"},
 		{Class: "2CHIF", Name: "Tanzer Rafael", Role: models.RoleGUIDE, ID: "seed-tanzer"},
-		{Class: "2CHIF", Name: "Weidinger	Daniel", Role: models.RoleGUIDE, ID: "seed-weidi"},
-		{Class: "2CHIF", Name: "Wirth	Lukas", Role: models.RoleGUIDE, ID: "seed-wirth"},
+		{Class: "2CHIF", Name: "Weidinger Daniel", Role: models.RoleGUIDE, ID: "seed-weidi"},
+		{Class: "2CHIF", Name: "Wirth Lukas", Role: models.RoleGUIDE, ID: "seed-wirth"},
 	}
 
 	for _, s := range students {

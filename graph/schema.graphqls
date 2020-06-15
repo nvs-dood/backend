@@ -94,7 +94,7 @@ type Mutation {
   updateShifts(studentId: ID!, newShifts: [InputShift!]!): Student!
 
   groupEntersRoom(enterRoom: EnterRoomInput!): RoomStay! #Returns room stay id, for later adding the leaving
-  groupLeavesRoom(enterRoom: LeaveRoomInput!): RoomStay!
+  groupLeavesRoom(leaveRoom: LeaveRoomInput!): RoomStay!
 
   addRoomStay(input: RoomStayInput!): RoomStay!
 }

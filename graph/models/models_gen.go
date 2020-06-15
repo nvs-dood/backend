@@ -26,11 +26,6 @@ type InputStudent struct {
 	Class string `json:"class"`
 }
 
-type LeaveRoomInput struct {
-	RoomStayID string    `json:"roomStayID"`
-	End        time.Time `json:"end"`
-}
-
 type NewStudent struct {
 	Name  string `json:"name"`
 	Role  Role   `json:"role"`

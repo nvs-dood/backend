@@ -6,11 +6,11 @@ package graph
 import (
 	"context"
 	"fmt"
-	"github.com/99designs/gqlgen/example/starwars/generated"
-
 	"github.com/EnglederLucas/nvs-dood/auth"
+	generated1 "github.com/EnglederLucas/nvs-dood/graph/generated"
 	"github.com/EnglederLucas/nvs-dood/graph/models"
 	"github.com/EnglederLucas/nvs-dood/repository"
+	"time"
 )
 
 func (r *mutationResolver) AddStudent(ctx context.Context, input models.NewStudent) (*models.Student, error) {
@@ -110,6 +110,78 @@ func (r *mutationResolver) UpdateShifts(ctx context.Context, studentID string, n
 	return student, nil
 }
 
+func (r *mutationResolver) GroupEntersRoom(ctx context.Context, enterRoom models.EnterRoomInput) (*models.RoomStay, error) {
+	var _, err = repository.GetStudentByID(r.DB, enterRoom.StudentID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	roomStay := &models.RoomStay{
+		Room:      enterRoom.Room,
+		StudentID: enterRoom.StudentID,
+		GroupSize: enterRoom.GroupSize,
+		Start:     &enterRoom.Start,
+	}
+
+	//When passed with pointer reference, the id will be added to the roomStay struct
+	err = r.DB.Create(&roomStay).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return roomStay, nil
+}
+
+func (r *mutationResolver) GroupLeavesRoom(ctx context.Context, leaveRoom models.LeaveRoomInput) (*models.RoomStay, error) {
+	var room models.RoomStay
+
+	err := r.DB.Where(&models.RoomStay{StayID: leaveRoom.RoomStayID}).Find(&room).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if room.Start.After(leaveRoom.End) {
+		return nil, fmt.Errorf("Endtime has to be after Starttime. This API is not for time travellers")
+	}
+
+	if room.End != nil {
+		return nil, fmt.Errorf("Endtime was already set. You can't leave a room twice in a row")
+	}
+
+	room.End = &leaveRoom.End
+	err = r.DB.Save(&room).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &room, nil
+}
+
+func (r *mutationResolver) AddRoomStay(ctx context.Context, input models.RoomStayInput) (*models.RoomStay, error) {
+	roomStay := &models.RoomStay{
+		Room:      input.Room,
+		StudentID: input.StudentID,
+		GroupSize: input.GroupSize,
+		Start:     &input.Start,
+		End:       &input.End,
+	}
+
+	if roomStay.Start.After(*roomStay.End) {
+		return nil, fmt.Errorf("Endtime has to be after Starttime. This API is not for time travellers")
+	}
+
+	//When passed with pointer reference, the id will be added to the roomStay struct
+	err := r.DB.Create(&roomStay).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return roomStay, nil
+}
+
 func (r *queryResolver) Students(ctx context.Context) ([]*models.Student, error) {
 	if user := auth.ForContext(ctx); user == nil || !user.Admin {
 		return nil, fmt.Errorf("Access denied")
@@ -148,11 +220,49 @@ func (r *queryResolver) GetStudentByID(ctx context.Context, studentID string) (*
 	return repository.GetStudentByID(r.DB, studentID)
 }
 
-// Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+func (r *queryResolver) AllVisitsInRoom(ctx context.Context, room string) ([]*models.RoomStay, error) {
+	if user := auth.ForContext(ctx); user == nil || !user.Admin {
+		return nil, fmt.Errorf("Access denied")
+	}
 
-// Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
+	var stays []*models.RoomStay
+
+	err := r.DB.Where("room LIKE ?", room).Find(&stays).Error
+	if err != nil {
+		return nil, err
+	}
+	return stays, nil
+}
+
+func (r *queryResolver) AllRoomActivities(ctx context.Context) ([]*models.RoomStay, error) {
+	if user := auth.ForContext(ctx); user == nil || !user.Admin {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	var activities []*models.RoomStay
+
+	err := r.DB.Find(&activities).Error
+	if err != nil {
+		return nil, err
+	}
+	return activities, nil
+}
+
+func (r *queryResolver) CurrentNumberOfPeople(ctx context.Context, room string) (int, error) {
+	var people = 0
+
+	err := r.DB.Model(&models.RoomStay{}).Where("room LIKE ? AND start < ?  AND end is NULL", room, time.Now()).Count(&people).Error
+	if err != nil {
+		return -1, err
+	}
+	return people, nil
+}
+
+// Mutation returns generated1.MutationResolver implementation.
+func (r *Resolver) Mutation() generated1.MutationResolver { return &mutationResolver{r} }
+
+// Query returns generated1.QueryResolver implementation.
+func (r *Resolver) Query() generated1.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

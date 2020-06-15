@@ -1,8 +1,6 @@
 package models
 
-import (
-	"time"
-)
+import "time"
 
 type Shift struct {
 	StudentID string     `json:"studentID"`

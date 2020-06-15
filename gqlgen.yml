@@ -52,6 +52,9 @@ models:
   RoomStay:
     model:
       - github.com/EnglederLucas/nvs-dood/graph/models.RoomStay
+  LeaveRoomInput:
+    model:
+      - github.com/EnglederLucas/nvs-dood/graph/models.LeaveRoomInput
   ID:
     model:
       - github.com/99designs/gqlgen/graphql.ID 
