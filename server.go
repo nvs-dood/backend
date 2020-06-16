@@ -4,12 +4,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/EnglederLucas/nvs-dood/auth"
-	"github.com/EnglederLucas/nvs-dood/graph/generated"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/EnglederLucas/nvs-dood/auth"
+	"github.com/EnglederLucas/nvs-dood/graph/generated"
 
 	"github.com/EnglederLucas/nvs-dood/database"
 	"github.com/EnglederLucas/nvs-dood/graph"
@@ -35,7 +36,7 @@ func main() {
 	router := chi.NewRouter()
 
 	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8100"},
+		AllowedOrigins:   []string{"http://localhost:8100", "https://www.graphqlbin.com"},
 		AllowCredentials: true,
 		Debug:            true,
 	}).Handler)
