@@ -6,11 +6,12 @@ package graph
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/EnglederLucas/nvs-dood/auth"
 	generated1 "github.com/EnglederLucas/nvs-dood/graph/generated"
 	"github.com/EnglederLucas/nvs-dood/graph/models"
 	"github.com/EnglederLucas/nvs-dood/repository"
-	"time"
 )
 
 func (r *mutationResolver) AddStudent(ctx context.Context, input models.NewStudent) (*models.Student, error) {
@@ -189,7 +190,7 @@ func (r *queryResolver) Students(ctx context.Context) ([]*models.Student, error)
 
 	var students []*models.Student
 
-	err := r.DB.Find(&students).Error
+	err := r.DB.Preload("Shifts").Find(&students).Error
 	if err != nil {
 		return nil, err
 	}
