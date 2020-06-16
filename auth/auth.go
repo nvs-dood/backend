@@ -91,7 +91,7 @@ func getKey() (interface{}, error) {
 
 	var jwksURL string = os.Getenv("JWKS_URL")
 	if jwksURL == "" {
-		jwksURL = `https://localhost:5000/.well-known/openid-configuration/jwks`
+		jwksURL = `http://localhost:5000/.well-known/openid-configuration/jwks`
 	}
 	set, err := jwk.Fetch(jwksURL)
 	if err != nil {
@@ -101,10 +101,11 @@ func getKey() (interface{}, error) {
 
 	// If you KNOW you have exactly one key, you can just
 	// use set.Keys[0]
-	keys := set.LookupKeyID("7-dIYXvTMBsfgD5YMpd5TA")
-	if len(keys) == 0 {
-		log.Printf("failed to lookup key: %s", err)
-		return nil, errors.New("failed to lookup keys")
+
+	keys := set.Keys
+	if len(keys) != 1 {
+		log.Printf("don't know which signing key to pick: %s", err)
+		return nil, errors.New("don't know which signing key to pick")
 	}
 
 	var key interface{} //*jwt.Token
